@@ -8,8 +8,8 @@ import java.lang.reflect.Method;
 @Data
 public class RouteMethod {
 
-    private String path;
-    private HttpMethod httpMethod;
+    private String[] paths;
+    private HttpMethod[] httpMethods;
     private Object instance;
     private Method method;
 

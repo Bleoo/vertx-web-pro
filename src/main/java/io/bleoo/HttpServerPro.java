@@ -4,6 +4,7 @@ import io.bleoo.process.AnnotationProcessor;
 import io.bleoo.process.ProcessResult;
 import io.bleoo.process.RouteMethod;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -36,23 +37,27 @@ public class HttpServerPro {
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
         for (RouteMethod routeMethod : processResult.getRouteMethods()) {
-            router.route(routeMethod.getHttpMethod(), routeMethod.getPath()).handler(routingContext -> {
+            for (HttpMethod httpMethod : routeMethod.getHttpMethods()) {
+                for (String path : routeMethod.getPaths()) {
+                    router.route(httpMethod, path).handler(routingContext -> {
 
-                HttpServerRequest request = routingContext.request();
+                        HttpServerRequest request = routingContext.request();
 
-                // This handler will be called for every request
-                HttpServerResponse response = routingContext.response();
-                response.putHeader("content-type", "text/plain");
+                        // This handler will be called for every request
+                        HttpServerResponse response = routingContext.response();
+                        response.putHeader("content-type", "text/plain");
 
-                // Write to the response and end it
-                try {
-                    String text = (String) routeMethod.getMethod().invoke(routeMethod.getInstance());
-                    response.end(text);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                        // Write to the response and end it
+                        try {
+                            String text = (String) routeMethod.getMethod().invoke(routeMethod.getInstance());
+                            response.end(text);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    log.debug("HTTP Mapping {} {}", httpMethod.name(), path);
                 }
-            });
-
+            }
         }
 
         server.requestHandler(router).listen(8080);

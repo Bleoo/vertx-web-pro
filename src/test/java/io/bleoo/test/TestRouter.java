@@ -1,7 +1,9 @@
 package io.bleoo.test;
 
 import io.bleoo.annotation.RequestMapping;
+import io.bleoo.annotation.RequestParam;
 import io.bleoo.annotation.Router;
+import io.vertx.core.http.HttpMethod;
 
 /**
  * @author leo
@@ -11,8 +13,18 @@ import io.bleoo.annotation.Router;
 @Router
 public class TestRouter {
 
-    @RequestMapping("/helloWorld")
-    public String helloWorld(){
+    @RequestMapping(value = "/get", method = HttpMethod.GET)
+    public String helloWorld() {
+        return "helloWorld";
+    }
+
+    @RequestMapping(value = "/get", method = HttpMethod.GET)
+    public String helloWorld(@RequestParam("id") Integer id) {
+        return "helloWorld";
+    }
+
+    @RequestMapping(value = "//post1", method = HttpMethod.POST)
+    public String post1() {
         return "helloWorld";
     }
 

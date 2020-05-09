@@ -4,12 +4,16 @@ import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.util.ClassUtil;
 import io.bleoo.annotation.RequestMapping;
 import io.bleoo.annotation.Router;
+import io.bleoo.exception.EmptyMethodsException;
+import io.bleoo.exception.EmptyPathsException;
 import io.bleoo.exception.IllegalPathException;
 import io.bleoo.exception.NewInstanceException;
+import io.vertx.core.http.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -25,10 +29,10 @@ public class AnnotationProcessor {
 
         for (Class<?> clz : classes) {
             Router routerAnnotation = AnnotationUtil.getAnnotation(clz, Router.class);
-            String mainPath = handlePath(routerAnnotation.value());
+            String parentPath = handlePath(routerAnnotation.value());
 
             Method[] methods = ClassUtil.getPublicMethods(clz);
-            Object routeInstance = null;
+            Object routeInstance;
             try {
                 routeInstance = clz.newInstance();
             } catch (Exception e) {
@@ -38,13 +42,23 @@ public class AnnotationProcessor {
                 RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
                 if (requestMapping == null) continue;
                 RouteMethod routeMethod = new RouteMethod();
-                String subPath = handlePath(requestMapping.value());
-                routeMethod.setPath(handlePath(mainPath + subPath));
-                routeMethod.setHttpMethod(requestMapping.method());
+
+                String[] paths = Arrays.stream(requestMapping.value())
+                        .map(s -> this.handlePath(parentPath + s))
+                        .distinct()
+                        .toArray(String[]::new);
+                if (paths.length == 0) {
+                    throw new EmptyPathsException();
+                }
+                HttpMethod[] httpMethods = Arrays.stream(requestMapping.method()).distinct().toArray(HttpMethod[]::new);
+                if (httpMethods.length == 0) {
+                    throw new EmptyMethodsException();
+                }
+                routeMethod.setPaths(paths);
+                routeMethod.setHttpMethods(httpMethods);
                 routeMethod.setInstance(routeInstance);
                 routeMethod.setMethod(method);
                 result.getRouteMethods().add(routeMethod);
-                log.debug("Find http path: {} {}", routeMethod.getHttpMethod().name(), routeMethod.getPath());
             }
         }
 
