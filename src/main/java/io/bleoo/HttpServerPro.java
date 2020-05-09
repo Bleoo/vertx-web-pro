@@ -1,5 +1,9 @@
 package io.bleoo;
 
+import cn.hutool.core.util.ReflectUtil;
+import cn.hutool.core.util.TypeUtil;
+import io.bleoo.annotation.RequestParam;
+import io.bleoo.exception.AnnotationEmptyValueException;
 import io.bleoo.process.AnnotationProcessor;
 import io.bleoo.process.ProcessResult;
 import io.bleoo.process.RouteMethod;
@@ -10,6 +14,10 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 
 @Slf4j
 public class HttpServerPro {
@@ -47,9 +55,30 @@ public class HttpServerPro {
                         HttpServerResponse response = routingContext.response();
                         response.putHeader("content-type", "text/plain");
 
-                        // Write to the response and end it
                         try {
-                            String text = (String) routeMethod.getMethod().invoke(routeMethod.getInstance());
+                            Method method = routeMethod.getMethod();
+                            Parameter[] parameters = method.getParameters();
+                            Object[] objects = new Object[parameters.length];
+                            for (int i = 0; i < parameters.length; i++) {
+                                Parameter parameter = parameters[i];
+                                Class<?> type = parameter.getType();
+                                RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
+                                if (requestParam != null) {
+                                    String value = requestParam.value().trim();
+                                    if (StringUtils.isBlank(value)) {
+                                        throw new AnnotationEmptyValueException();
+                                    }
+                                    // 类型转换
+                                    if (type == Integer.class) {
+                                        objects[i] = Integer.valueOf(request.getParam(value));
+                                    } else if (type == String.class) {
+                                        objects[i] = request.getParam(value);
+                                    }
+                                }
+                            }
+
+                            // Write to the response and end it
+                            String text = (String) method.invoke(routeMethod.getInstance(), objects);
                             response.end(text);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -60,8 +89,14 @@ public class HttpServerPro {
             }
         }
 
-        server.requestHandler(router).listen(8080);
-        log.info("Http listen on {}", 8080);
+        server.requestHandler(router).listen(8081, event -> {
+            if (event.succeeded()) {
+                log.info("Http listen on {}", 8080);
+            } else {
+                event.cause().printStackTrace();
+            }
+        });
+
     }
 
 }

@@ -14,13 +14,13 @@ import io.vertx.core.http.HttpMethod;
 public class TestRouter {
 
     @RequestMapping(value = "/get", method = HttpMethod.GET)
-    public String helloWorld() {
+    public String get() {
         return "helloWorld";
     }
 
-    @RequestMapping(value = "/get", method = HttpMethod.GET)
-    public String helloWorld(@RequestParam("id") Integer id) {
-        return "helloWorld";
+    @RequestMapping(value = "/get1", method = HttpMethod.GET)
+    public String get1(@RequestParam("id") Integer id) {
+        return String.valueOf(id);
     }
 
     @RequestMapping(value = "//post1", method = HttpMethod.POST)
