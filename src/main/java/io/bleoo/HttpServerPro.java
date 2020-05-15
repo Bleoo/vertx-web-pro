@@ -1,10 +1,10 @@
 package io.bleoo;
 
 import cn.hutool.core.util.ClassUtil;
-import cn.hutool.core.util.ReflectUtil;
-import cn.hutool.core.util.TypeUtil;
+import cn.hutool.http.ContentType;
 import io.bleoo.annotation.PathVariable;
 import io.bleoo.annotation.RequestBody;
+import io.bleoo.annotation.RequestHeader;
 import io.bleoo.annotation.RequestParam;
 import io.bleoo.exception.AnnotationEmptyValueException;
 import io.bleoo.process.AnnotationProcessor;
@@ -15,9 +15,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
+import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -54,13 +57,10 @@ public class HttpServerPro {
         for (RouteMethod routeMethod : processResult.getRouteMethods()) {
             for (HttpMethod httpMethod : routeMethod.getHttpMethods()) {
                 for (String path : routeMethod.getPaths()) {
-                    router.route(httpMethod, path).handler(ctx -> {
-
-                        HttpServerRequest request = ctx.request();
+                    router.route(httpMethod, path).handler(BodyHandler.create()).handler(ctx -> {
 
                         // This handler will be called for every request
                         HttpServerResponse response = ctx.response();
-                        response.putHeader("content-type", "text/plain");
 
                         try {
                             Method method = routeMethod.getMethod();
@@ -69,14 +69,17 @@ public class HttpServerPro {
                             for (int i = 0; i < parameters.length; i++) {
                                 Parameter parameter = parameters[i];
                                 Class<?> type = parameter.getType();
+                                dealRequestHeader(ctx, objects, i, parameter, type);
                                 dealRequestParam(ctx, objects, i, parameter, type);
                                 dealPathVariable(ctx, objects, i, parameter, type);
                                 dealRequestBody(ctx, objects, i, parameter, type);
                             }
 
+                            Class<?> returnType = method.getReturnType();
                             // Write to the response and end it
-                            String text = (String) method.invoke(routeMethod.getInstance(), objects);
-                            response.end(text);
+                            Object result = method.invoke(routeMethod.getInstance(), objects);
+                            dealResponse(response, returnType);
+                            response.end(Json.encode(result));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -97,10 +100,18 @@ public class HttpServerPro {
 
     }
 
-    private void dealRequestBody(RoutingContext ctx, Object[] objects, int i, Parameter parameter, Class<?> type) throws Exception {
+    private void dealRequestHeader(RoutingContext ctx, Object[] objects, int i, Parameter parameter, Class<?> type) {
+        RequestHeader requestHeader = parameter.getAnnotation(RequestHeader.class);
+        if (requestHeader != null) {
+            String key = requestHeader.value();
+            String headerValue = ctx.request().getHeader(key);
+            objects[i] = baseTypeConvert(type, headerValue);
+        }
+    }
+
+    private void dealRequestBody(RoutingContext ctx, Object[] objects, int i, Parameter parameter, Class<?> type) {
         RequestBody requestBody = parameter.getAnnotation(RequestBody.class);
         if (requestBody != null) {
-            // 类型转换
             if (Collection.class.isAssignableFrom(type)) {
                 JsonArray bodyAsJsonArray = ctx.getBodyAsJsonArray();
                 objects[i] = bodyAsJsonArray.getList();
@@ -108,7 +119,8 @@ public class HttpServerPro {
                 JsonArray bodyAsJsonArray = ctx.getBodyAsJsonArray();
                 objects[i] = bodyAsJsonArray.getList().toArray();
             } else {
-                // TODO
+                Object o = ctx.getBodyAsJson().mapTo(type);
+                objects[i] = o;
             }
         }
     }
@@ -121,11 +133,14 @@ public class HttpServerPro {
                 throw new AnnotationEmptyValueException();
             }
             List<String> params = ctx.queryParam(value);
-            // 类型转换
-            if (type == Integer.class) {
-                objects[i] = Integer.valueOf(params.get(0));
-            } else if (type == String.class) {
-                objects[i] = params.get(0);
+            if (Collection.class.isAssignableFrom(type)) {
+                // 暂时只支持了 string
+                objects[i] = params;
+            } else if (type.isArray()) {
+                objects[i] = params.toArray();
+            } else {
+                String param = params.get(0);
+                objects[i] = baseTypeConvert(type, param);
             }
         }
     }
@@ -138,13 +153,43 @@ public class HttpServerPro {
                 throw new AnnotationEmptyValueException();
             }
             String param = ctx.pathParam(value);
-            // 类型转换
-            if (type == Integer.class) {
-                objects[i] = Integer.valueOf(param);
-            } else if (type == String.class) {
-                objects[i] = param;
-            }
+            objects[i] = baseTypeConvert(type, param);
         }
+    }
+
+    private Object baseTypeConvert(Class<?> type, String param) {
+        if (type == byte.class || type == Byte.class) {
+            return Byte.valueOf(param);
+        } else if (type == short.class || type == Short.class) {
+            return Integer.valueOf(param);
+        } else if (type == int.class || type == Integer.class) {
+            return Integer.valueOf(param);
+        } else if (type == long.class || type == Long.class) {
+            return Long.valueOf(param);
+        } else if (type == float.class || type == Float.class) {
+            return Float.valueOf(param);
+        } else if (type == double.class || type == Double.class) {
+            return Double.valueOf(param);
+        } else if (type == boolean.class || type == Boolean.class) {
+            return Boolean.valueOf(param);
+        } else if (type == char.class || type == Character.class) {
+            if (param.length() > 0) {
+                return param.charAt(0);
+            }
+        } else if (type == String.class) {
+            return param;
+        }
+        return null;
+    }
+
+    private void dealResponse(HttpServerResponse response, Class<?> type) {
+        ContentType contentType;
+        if (type.isPrimitive() || ClassUtil.isPrimitiveWrapper(type) || CharSequence.class.isAssignableFrom(type)) {
+            contentType = ContentType.TEXT_PLAIN;
+        } else {
+            contentType = ContentType.JSON;
+        }
+        response.putHeader("content-type", contentType.getValue());
     }
 
 }
