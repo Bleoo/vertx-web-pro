@@ -7,6 +7,7 @@ import io.bleoo.annotation.RequestBody;
 import io.bleoo.annotation.RequestHeader;
 import io.bleoo.annotation.RequestParam;
 import io.bleoo.exception.AnnotationEmptyValueException;
+import io.bleoo.exception.MappingDuplicateException;
 import io.bleoo.process.AnnotationProcessor;
 import io.bleoo.process.ProcessResult;
 import io.bleoo.process.RouteMethod;
@@ -26,14 +27,14 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 public class HttpServerPro {
 
     private Vertx vertx;
     private ProcessResult processResult;
+    private Map<HttpMethod, Set<String>> existsPathMap;
 
     public HttpServerPro(Vertx vertx) {
         this.vertx = vertx;
@@ -45,9 +46,12 @@ public class HttpServerPro {
         return server;
     }
 
-
     public void start(Class<?> mainClass) {
         processResult = new AnnotationProcessor().process(mainClass);
+        existsPathMap = new HashMap<>();
+        for (HttpMethod method : HttpMethod.values()) {
+            existsPathMap.put(method, new HashSet<>());
+        }
         startHttpServer();
     }
 
@@ -84,6 +88,11 @@ public class HttpServerPro {
                             e.printStackTrace();
                         }
                     });
+                    Set<String> pathSet = existsPathMap.get(httpMethod);
+                    if (pathSet.contains(path)) {
+                        throw new MappingDuplicateException(httpMethod, path);
+                    }
+                    pathSet.add(path);
                     log.debug("HTTP Mapping {} {}", httpMethod.name(), path);
                 }
             }

@@ -41,7 +41,7 @@ public class TestRouter {
     }
 
     @RequestMapping(value = "/post2", method = HttpMethod.POST)
-    public Result<String> post1(@RequestBody Query query) {
+    public Result<String> post2(@RequestBody Query query) {
         Result<String> result = new Result<>();
         result.setRequestId(query.getRequestId());
         result.setPage(query.getPage());
