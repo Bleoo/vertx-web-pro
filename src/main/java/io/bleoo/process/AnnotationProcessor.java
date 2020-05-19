@@ -2,8 +2,7 @@ package io.bleoo.process;
 
 import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.util.ClassUtil;
-import io.bleoo.annotation.RequestMapping;
-import io.bleoo.annotation.Router;
+import io.bleoo.annotation.*;
 import io.bleoo.exception.EmptyMethodsException;
 import io.bleoo.exception.EmptyPathsException;
 import io.bleoo.exception.IllegalPathException;
@@ -39,18 +38,18 @@ public class AnnotationProcessor {
                 throw new NewInstanceException(e);
             }
             for (Method method : methods) {
-                RequestMapping requestMapping = method.getAnnotation(RequestMapping.class);
-                if (requestMapping == null) continue;
+                String[] value = getValues(method);
+                if (value == null) continue;
+                HttpMethod[] httpMethod = getHttpMethods(method);
                 RouteMethod routeMethod = new RouteMethod();
-
-                String[] paths = Arrays.stream(requestMapping.value())
+                String[] paths = Arrays.stream(value)
                         .map(s -> this.handlePath(parentPath + s))
                         .distinct()
                         .toArray(String[]::new);
                 if (paths.length == 0) {
                     throw new EmptyPathsException();
                 }
-                HttpMethod[] httpMethods = Arrays.stream(requestMapping.method()).distinct().toArray(HttpMethod[]::new);
+                HttpMethod[] httpMethods = Arrays.stream(httpMethod).distinct().toArray(HttpMethod[]::new);
                 if (httpMethods.length == 0) {
                     throw new EmptyMethodsException();
                 }
@@ -63,6 +62,48 @@ public class AnnotationProcessor {
         }
 
         return result;
+    }
+
+    private String[] getValues(Method method) {
+        String name = "value";
+        String[] value = AnnotationUtil.getAnnotationValue(method, GetMapping.class, name);
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PostMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PutMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PatchMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, DeleteMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, RequestMapping.class, name);
+        }
+        return value;
+    }
+
+    private HttpMethod[] getHttpMethods(Method method) {
+        String name = "method";
+        HttpMethod[] value = AnnotationUtil.getAnnotationValue(method, GetMapping.class, name);
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PostMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PutMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, PatchMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, DeleteMapping.class, name);
+        }
+        if (value == null) {
+            value = AnnotationUtil.getAnnotationValue(method, RequestMapping.class, name);
+        }
+        return value;
     }
 
     private String handlePath(String path) {

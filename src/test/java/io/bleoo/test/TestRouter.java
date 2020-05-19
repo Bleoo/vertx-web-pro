@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Router
 public class TestRouter {
 
-    @RequestMapping(value = "/get", method = HttpMethod.GET)
+    @GetMapping(value = "/get")
     public Future<String> get() {
         return Future.succeededFuture("helloWorld");
     }
@@ -35,7 +35,7 @@ public class TestRouter {
         return Future.succeededFuture(String.valueOf(id));
     }
 
-    @RequestMapping(value = "//post1", method = HttpMethod.POST)
+    @PostMapping(value = "//post1")
     public Future<String> post1() {
         return Future.succeededFuture("helloWorld");
     }

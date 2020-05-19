@@ -1,5 +1,6 @@
 package io.bleoo;
 
+import cn.hutool.core.annotation.AnnotationUtil;
 import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.TypeUtil;
 import cn.hutool.http.ContentType;
@@ -214,14 +215,11 @@ public class HttpServerPro {
         response.putHeader("content-type", contentType.getValue());
         result.onComplete(ar -> {
             if (ar.succeeded()) {
-
                 switch (contentType) {
                     case JSON:
-                        System.out.println("1" + ar.result().toString());
                         response.end(Json.encode(ar.result()));
                         break;
                     case TEXT_PLAIN:
-                        System.out.println(ar.result().toString());
                         response.end(ar.result().toString());
                         break;
                     default:
