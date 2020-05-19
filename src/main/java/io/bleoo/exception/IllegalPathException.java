@@ -4,6 +4,6 @@ public class IllegalPathException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return "非法路径";
+        return "illegal path!";
     }
 }

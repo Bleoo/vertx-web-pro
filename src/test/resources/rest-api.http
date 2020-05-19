@@ -1,0 +1,6 @@
+POST http://localhost:8080/post2
+Content-Type: application/json
+
+{"requestId": "fsdfgdg1", "page": 1, "size": 2}
+
+###

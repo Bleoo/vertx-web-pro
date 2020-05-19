@@ -21,27 +21,27 @@ import java.util.concurrent.TimeUnit;
 public class TestRouter {
 
     @RequestMapping(value = "/get", method = HttpMethod.GET)
-    public String get() {
-        return "helloWorld";
+    public Future<String> get() {
+        return Future.succeededFuture("helloWorld");
     }
 
     @RequestMapping(value = "/get1", method = HttpMethod.GET)
-    public String get1(@RequestParam("id") Integer id) {
-        return String.valueOf(id);
+    public Future<String> get1(@RequestParam("id") Integer id) {
+        return Future.succeededFuture(String.valueOf(id));
     }
 
     @RequestMapping(value = "/get2/:id", method = HttpMethod.GET)
-    public String get2(@PathVariable("id") Integer id) {
-        return String.valueOf(id);
+    public Future<String> get2(@PathVariable("id") Integer id) {
+        return Future.succeededFuture(String.valueOf(id));
     }
 
     @RequestMapping(value = "//post1", method = HttpMethod.POST)
-    public String post1() {
-        return "helloWorld";
+    public Future<String> post1() {
+        return Future.succeededFuture("helloWorld");
     }
 
     @RequestMapping(value = "/post2", method = HttpMethod.POST)
-    public Result<String> post2(@RequestBody Query query) {
+    public Future<Result<String>> post2(@RequestBody Query query) {
         Result<String> result = new Result<>();
         result.setRequestId(query.getRequestId());
         result.setPage(query.getPage());
@@ -50,7 +50,7 @@ public class TestRouter {
         data.add("test1");
         data.add("test2");
         result.setData(data);
-        return result;
+        return Future.succeededFuture(result);
     }
 
 }

@@ -8,6 +8,6 @@ public class NewInstanceException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return "实例创建失败";
+        return "new instance failed!";
     }
 }

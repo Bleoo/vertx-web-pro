@@ -4,6 +4,6 @@ public class EmptyPathsException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return "RequestMapping path 为空";
+        return "RequestMapping path is null!";
     }
 }

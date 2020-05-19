@@ -1,6 +1,7 @@
 package io.bleoo;
 
 import cn.hutool.core.util.ClassUtil;
+import cn.hutool.core.util.TypeUtil;
 import cn.hutool.http.ContentType;
 import io.bleoo.annotation.PathVariable;
 import io.bleoo.annotation.RequestBody;
@@ -8,17 +9,17 @@ import io.bleoo.annotation.RequestHeader;
 import io.bleoo.annotation.RequestParam;
 import io.bleoo.exception.AnnotationEmptyValueException;
 import io.bleoo.exception.MappingDuplicateException;
+import io.bleoo.exception.ReturnTypeWrongException;
 import io.bleoo.process.AnnotationProcessor;
 import io.bleoo.process.ProcessResult;
 import io.bleoo.process.RouteMethod;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.web.ParsedHeaderValues;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -27,6 +28,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 
 @Slf4j
@@ -79,11 +82,18 @@ public class HttpServerPro {
                                 dealRequestBody(ctx, objects, i, parameter, type);
                             }
 
-                            Class<?> returnType = method.getReturnType();
+                            Type returnType = method.getGenericReturnType();
+                            if (ClassUtil.isAssignable(Future.class, returnType.getClass())) {
+                                throw new ReturnTypeWrongException();
+                            }
+                            Type[] actualTypeArguments = ((ParameterizedType) returnType).getActualTypeArguments();
+                            Type actualType = null;
+                            if (actualTypeArguments.length > 0) {
+                                actualType = actualTypeArguments[0];
+                            }
                             // Write to the response and end it
-                            Object result = method.invoke(routeMethod.getInstance(), objects);
-                            dealResponse(response, returnType);
-                            response.end(Json.encode(result));
+                            Future<?> result = (Future<?>) method.invoke(routeMethod.getInstance(), objects);
+                            dealResponse(response, actualType, result);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -148,8 +158,10 @@ public class HttpServerPro {
             } else if (type.isArray()) {
                 objects[i] = params.toArray();
             } else {
-                String param = params.get(0);
-                objects[i] = baseTypeConvert(type, param);
+                if (!params.isEmpty()) {
+                    String param = params.get(0);
+                    objects[i] = baseTypeConvert(type, param);
+                }
             }
         }
     }
@@ -191,14 +203,35 @@ public class HttpServerPro {
         return null;
     }
 
-    private void dealResponse(HttpServerResponse response, Class<?> type) {
+    private void dealResponse(HttpServerResponse response, Type type, Future<?> result) {
         ContentType contentType;
-        if (type.isPrimitive() || ClassUtil.isPrimitiveWrapper(type) || CharSequence.class.isAssignableFrom(type)) {
+        Class<?> clz = TypeUtil.getClass(type);
+        if (clz == null || clz.isPrimitive() || ClassUtil.isPrimitiveWrapper(clz) || CharSequence.class.isAssignableFrom(clz)) {
             contentType = ContentType.TEXT_PLAIN;
         } else {
             contentType = ContentType.JSON;
         }
         response.putHeader("content-type", contentType.getValue());
+        result.onComplete(ar -> {
+            if (ar.succeeded()) {
+
+                switch (contentType) {
+                    case JSON:
+                        System.out.println("1" + ar.result().toString());
+                        response.end(Json.encode(ar.result()));
+                        break;
+                    case TEXT_PLAIN:
+                        System.out.println(ar.result().toString());
+                        response.end(ar.result().toString());
+                        break;
+                    default:
+                        response.end();
+                }
+            } else {
+                response.setStatusCode(500);
+                response.end();
+            }
+        });
     }
 
 }

@@ -4,6 +4,6 @@ public class EmptyMethodsException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return "RequestMapping method 为空";
+        return "RequestMapping method is null!";
     }
 }
