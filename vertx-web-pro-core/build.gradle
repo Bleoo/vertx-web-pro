@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+def vertxVersion = "4.0.0-milestone4"
+
+group 'io.vertx.webpro.core'
+version '1.0'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "http://maven.aliyun.com/nexus/content/repositories/google" }
+    maven { url "http://maven.aliyun.com/nexus/content/groups/public/" }
+    maven { url "http://maven.aliyun.com/nexus/content/repositories/jcenter" }
+}
+
+dependencies {
+    compile "io.vertx:vertx-core:${vertxVersion}"
+    compile "io.vertx:vertx-web:${vertxVersion}"
+    compile 'cn.hutool:hutool-all:5.3.3'
+    compile 'io.swagger.core.v3:swagger-jaxrs2:2.1.2'
+    compileOnly 'org.projectlombok:lombok:1.18.12'
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+
+}

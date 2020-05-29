@@ -1,2 +1,5 @@
 rootProject.name = 'vertx-web-pro'
+include 'vertx-web-pro-core'
+include 'vertx-web-pro-swagger'
+include 'vertx-web-pro-example'
 

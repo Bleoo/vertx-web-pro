@@ -1,0 +1,1028 @@
+openapi: 3.0.0
+
+info:
+  description: "亲子内容版API"
+  version: "1.0.0"
+  title: "亲子内容版"
+  contact:
+    name: Zhang Xiuyu
+    email: "y@moumoux.com"
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"
+
+tags:
+  - name: "ttp"
+    description: "亲子内容相关信息接口"
+  - name: "misc"
+    description: "各种单独的接口"
+
+paths:
+  /healthcheck:
+    get:
+      tags:
+        - "misc"
+      summary: "健康检查"
+      description: "健康检查"
+      operationId: "healthCheck"
+      responses:
+        200:
+          description: "健康"
+        500:
+          description: "不健康"
+      x-vertx-event-bus: misc_service.bus
+  ######################################################################################################################
+  /tab:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取首页的tab，本质上是一系列的tag。"
+      operationId: "getTabs"
+      responses:
+        200:
+          description: "返回数据列表"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /bulletin:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取公告，包含公告内容和跳转链接。公告可能有多个，如果有多个滚动展示。"
+      operationId: "getBulletins"
+      responses:
+        200:
+          description: "返回公告列表"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /me/contents:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取个人文章列表"
+      operationId: "getMyContents"
+      description: "获取个人文章列表"
+      parameters:
+        - name: "state"
+          in: query
+          schema:
+            type: string
+            enum: [draft, normal]
+          description: "文章的状态"
+          required: false
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /me:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取个人信息"
+      description: "获取个人信息"
+      operationId: "getMe"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      responses:
+        200:
+          description: "用户个人信息"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /feeds:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取首页文章列表"
+      description: "获取首页文章列表"
+      operationId: "getFeeds"
+      parameters:
+        - $ref: '#/components/parameters/contentTypeParam'
+        - $ref: '#/components/parameters/tagParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /favorite:
+    get:
+      tags:
+        - "ttp"
+      summary: "获得关注列表"
+      description: "获得关注列表"
+      operationId: "getFavorite"
+      parameters:
+        - $ref: '#/components/parameters/idOffsetParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/token'
+      responses:
+        200:
+          description: "返回结果"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /sendfeedback:
+    post:
+      tags:
+        - "ttp"
+      summary: "上传用户反馈"
+      description: "上传用户的反馈内容和联系方式"
+      operationId: "postFeedback"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contact:
+                  type: string
+                content:
+                  type: string
+              required:
+                - contact
+                - content
+      responses:
+        200:
+          description: "返回结果"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /author/me:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取当前作者信息"
+      description: "获取当前作者信息"
+      operationId: "getCurrentAuthor"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /author/me/content:
+    get:
+      tags:
+        - "ttp"
+      summary: "我的发布"
+      description: "获取当前用户的发布内容"
+      operationId: "getCurrentAuthorContent"
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /author/me/footprint:
+    get:
+      tags:
+        - "ttp"
+      summary: "我的足迹"
+      description: "获取当前用户的的阅读历史"
+      operationId: "getCurrentAuthorFootprint"
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /author/me/liked:
+    get:
+      tags:
+        - "ttp"
+      summary: "我的点赞"
+      description: "获取当前用户的的点赞历史"
+      operationId: "getCurrentAuthorLiked"
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /author/me/favored:
+    get:
+      tags:
+        - "ttp"
+      summary: "我的收藏"
+      description: "获取当前用户的的点赞历史"
+      operationId: "getCurrentAuthorFavored"
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /author/{authorId}:
+    get:
+      tags:
+        - "ttp"
+      summary: "作者信息"
+      description: "根据作者id获得作者信息"
+      operationId: "getAuthor"
+      parameters:
+        - name: "authorId"
+          in: path
+          schema:
+            type: string
+          description: "作者的id"
+          required: true
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /author/{authorId}/content:
+    get:
+      tags:
+        - "ttp"
+      summary: "作者文章列表"
+      description: "根据作者id获得作者文章"
+      operationId: "getAuthorContent"
+      parameters:
+        - name: "authorId"
+          in: path
+          schema:
+            type: string
+          description: "作者的id"
+          required: true
+        - $ref: '#/components/parameters/contentTypeParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /search/content:
+    get:
+      tags:
+        - "ttp"
+      summary: "搜索"
+      description: "根据关键词搜索文章标题和正文"
+      operationId: "searchContent"
+      parameters:
+        - name: "keyword"
+          in: query
+          schema:
+            type: string
+          description: "搜索的关键字"
+          required: true
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        200:
+          description: "搜索结果和下一页uri"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /search/keyword:
+    get:
+      tags:
+        - "ttp"
+      summary: "根据搜索补全关键词"
+      description: "根据搜索补全关键词"
+      operationId: "searchKeyword"
+      parameters:
+        - name: "keyword"
+          in: query
+          schema:
+            type: string
+          description: "搜索的关键字"
+          required: true
+      responses:
+        200:
+          description: "可能的联想列表"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /contents:
+    get:
+      tags:
+        - "ttp"
+      summary: "文章详情"
+      description: "获得文章详情信息"
+      operationId: "getContentsWithIds"
+      parameters:
+        - name: "ids"
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: "内容的id"
+          required: true
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    post:
+      tags:
+        - "ttp"
+      summary: "创建文章"
+      description: "创建文章"
+      operationId: "createPost"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        description: '文章详情'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /contents/snack:
+    post:
+      tags:
+        - "ttp"
+      summary: "发布呼啦圈"
+      description: "发布呼啦圈"
+      operationId: "createSnack"
+      requestBody:
+        description: "呼啦圈详情"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Snack'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /contents/{contentId}:
+    get:
+      tags:
+        - "ttp"
+      summary: "文章详情"
+      description: "获得文章详情信息"
+      operationId: "getContent"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - name: "extra"
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: "是否显示extra信息，编辑器使用"
+          required: true
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    patch:
+      tags:
+        - "ttp"
+      summary: "更新文章"
+      description: "更新文章"
+      operationId: "updatePost"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        description: '文章详情（字段可选）'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePost'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    delete:
+      tags:
+        - "ttp"
+      summary: "删除文章"
+      description: "删除文章,实际上是假删除"
+      operationId: "deletePost"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /contents/{contentId}/markView:
+    put:
+      tags:
+        - "ttp"
+      summary: "标记已阅读"
+      description: "标记已阅读"
+      operationId: "markView"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /contents/{contentId}/isLiked:
+    get:
+      tags:
+        - "ttp"
+      summary: "文章是否已点赞"
+      description: "文章是否已点赞"
+      operationId: "isContentLiked"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    post:
+      tags:
+        - "ttp"
+      summary: "点赞"
+      description: "点赞"
+      operationId: "addLike"
+      parameters:
+        - $ref: '#/components/parameters/contentIdParam'
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    delete:
+      tags:
+        - "ttp"
+      summary: "取消点赞"
+      description: "取消点赞"
+      operationId: "dislike"
+      parameters:
+        - $ref: '#/components/parameters/contentIdParam'
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  /contents/{contentId}/share:
+    post:
+      tags:
+        - "ttp"
+      summary: "分享"
+      description: "分享"
+      operationId: "share"
+      parameters:
+        - $ref: '#/components/parameters/contentIdParam'
+        - $ref: '#/components/parameters/tokenNonRequired'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /contents/{contentId}/isFavored:
+    get:
+      tags:
+        - "ttp"
+      summary: "文章是否已关注"
+      description: "文章是否已关注"
+      operationId: "isContentFavored"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "内容的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+      x-vertx-event-bus: ttp_service.bus
+    post:
+      tags:
+        - "ttp"
+      summary: "添加关注"
+      description: "添加关注"
+      operationId: "addFavorite"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "文章的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+        403:
+          description: "已经关注了，重复请求"
+      x-vertx-event-bus: ttp_service.bus
+    delete:
+      tags:
+        - "ttp"
+      summary: "添加关注"
+      description: "添加关注"
+      operationId: "deleteFavorite"
+      parameters:
+        - name: "contentId"
+          in: path
+          schema:
+            type: string
+          description: "文章的id"
+          required: true
+        - $ref: '#/components/parameters/token'
+      responses:
+        400:
+          description: "参数不正确"
+        404:
+          description: "并没有关注"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /guessLike/list:
+    get:
+      tags:
+        - "ttp"
+      summary: "猜你喜欢"
+      description: "猜你喜欢"
+      operationId: "guessLike"
+      responses:
+        200:
+          description: "文章列表"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /recommend/banner:
+    get:
+      tags:
+        - "ttp"
+      summary: "首页banner推荐"
+      description: "首页banner推荐列表"
+      operationId: "getBanner"
+      responses:
+        200:
+          description: "文章列表"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /wechatoauth:
+    get:
+      operationId: wechatOauth
+      tags:
+        - "user"
+      summary: ""
+      description: "用户微信登录"
+      parameters:
+        - name: "code"
+          in: query
+          schema:
+            type: string
+          description: "前端获取的用来登录的code"
+          required: true
+      responses:
+        200:
+          description: "包含用户基本信息，以及token"
+        302:
+          description: "重定向到前端页面"
+      x-vertx-event-bus: ttp_service.bus
+  /wechatqroauth:
+    get:
+      operationId: wechatQROauth
+      tags:
+        - "user"
+      summary: ""
+      description: "用户微信登录"
+      parameters:
+        - name: "code"
+          in: query
+          schema:
+            type: string
+          description: "前端获取的用来登录的code"
+          required: true
+        - name: "redirect_url"
+          in: query
+          schema:
+            type: string
+          description: "重定向的目标URL"
+          required: true
+        - name: "state"
+          in: query
+          schema:
+            type: string
+          description: "随机字符串"
+          required: false
+      responses:
+        200:
+          description: "包含用户基本信息，以及token"
+        302:
+          description: "重定向到前端页面"
+      x-vertx-event-bus: ttp_service.bus
+  /iosoauth:
+    post:
+      operationId: iosOauth
+      tags:
+        - "user"
+      summary: "IOS换取token接口(Sign in with apple)"
+      description: "上传IOS生成的identityToken，服务端返回token"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IosOauthRequest'
+      responses:
+        200:
+          description: "包含用户id, name, token"
+        302:
+          description: "重定向到前端页面"
+      x-vertx-event-bus: ttp_service.bus
+  /refreshtoken:
+    post:
+      operationId: refreshToken
+      tags:
+        - "user"
+      summary: "token以旧换新"
+      description: "用已经过期的token兑换新的token，如果提供的token依然有效，则返回原token"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      responses:
+        200:
+          description: "返回json对象，字段值为newToken，即新生成的token"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /logout:
+    post:
+      tags:
+        - "user"
+      operationId: logout
+      summary: "登出"
+      description: "用户登出，即清除cookie缓存"
+      parameters:
+        - $ref: '#/components/parameters/tokenInCookie'
+      responses:
+        200:
+          description: "登出成功"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /login:
+    post:
+      tags:
+        - "user"
+      operationId: login
+      summary: "账号密码登录"
+      description: "这目前是一个临时接口，会对所有账号密码通过的人发放同一个相当长时间内有效官方账号的token."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        200:
+          description: "登录成功"
+      x-vertx-event-bus: ttp_service.bus
+  ######################################################################################################################
+  /transfer:
+    post:
+      tags:
+        - "ttp"
+      summary: "转存图片"
+      operationId: "transferImage"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/transferReq'
+      responses:
+        200:
+          description: "正常响应"
+      x-vertx-event-bus: ttp_service.bus
+  /upload:
+    post:
+      tags:
+        - "ttp"
+      summary: "获取图片上传相关信息"
+      operationId: "getUploadInfo"
+      parameters:
+        - $ref: '#/components/parameters/token'
+        - $ref: '#/components/parameters/fileTypeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type:
+                object
+              properties:
+                custom:
+                  type: object
+                  description: "需要自定义的内容"
+      responses:
+        200:
+          description: "返回上传信息"
+      x-vertx-event-bus: ttp_service.bus
+  /upload/sts:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取OSS临时token，这是给客户端SDK调用的"
+      operationId: "getSTS"
+      parameters:
+        - $ref: '#/components/parameters/token'
+      responses:
+        200:
+          description: "正常响应数据"
+      x-vertx-event-bus: ttp_service.bus
+  /upload/callback:
+    post:
+      tags:
+        - "ttp"
+      summary: "文件上传回调，OSS调用"
+      operationId: "uploadCallback"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCallbackReq'
+      responses:
+        200:
+          description: "响应数据"
+      x-vertx-event-bus: ttp_service.bus
+  /upgrade:
+    get:
+      tags:
+        - "ttp"
+      summary: "获取升级信息，即比当前版本更新的最新版"
+      operationId: "getUpgradeInfo"
+      responses:
+        200:
+          description: "返回最新信息，如没有最新信息，则为空json"
+        400:
+          description: "User Agent不符合APP预先规定的格式"
+      x-vertx-event-bus: ttp_service.bus
+
+components:
+  parameters:
+    requestId:
+      in: header
+      name: X-Request-ID
+      description: "测试时可不填"
+      schema:
+        type: string
+      required: false
+    uid:
+      in: header
+      name: X-UID
+      description: "测试时可不填"
+      schema:
+        type: string
+      required: true
+    token:
+      in: header
+      name: token
+      schema:
+        type: string
+      required: true
+    tokenNonRequired:
+      in: header
+      name: token
+      schema:
+        type: string
+      required: false
+
+    tokenInCookie:
+      name: token
+      in: cookie
+      schema:
+        type: string
+      description: "token"
+      required: false
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 100
+        default: 20
+      description: "限制条数，通常为自动生成url填写"
+      required: false
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+      description: "偏移量"
+      required: false
+    idOffsetParam:
+      name: begin
+      in: query
+      schema:
+        type: string
+        default: 0
+      description: "偏移id，通常为上一页的最后一个id，通常为自动生成url填写"
+      required: false
+    tagParam:
+      name: "tag"
+      in: query
+      description: "用来过滤的tag的id，非必填"
+      required: false
+      schema:
+        type: integer
+    fileTypeParam:
+      name: "type"
+      in: query
+      description: "待上传的文件类型"
+      required: true
+      schema:
+        type: string
+        enum:
+          - jpg
+          - jpeg
+          - gif
+          - png
+    contentIdParam:
+      name: "contentId"
+      in: path
+      schema:
+        type: string
+      description: "内容的id"
+      required: true
+    contentTypeParam:
+      name: "content_type"
+      in: query
+      description: "内容类型，不传默认post"
+      required: true
+      schema:
+        type: string
+        enum:
+          - post
+          - snack
+        default: post
+
+  schemas:
+    IosOauthRequest:
+      type: object
+      properties:
+        identityToken:
+          type: string
+        authorizationCode:
+          type: string
+        identifier:
+          type: string
+        name:
+          type: string
+          description: "用户全名，如获取不到就不用传"
+      required:
+        - identityToken
+        - authorizationCode
+        - identifier
+    Post:
+      required:
+        - state
+        - meta
+        - extra
+      type: object
+      properties:
+        state:
+          type: string
+          description: '文章状态'
+          enum:
+            - normal
+            - deleted
+            - disable
+            - draft
+        meta:
+          type: object
+        extra:
+          type: object
+      xml:
+        name: Post
+    Snack:
+      required:
+        - meta
+        - medias
+        - content
+      type: object
+      properties:
+        meta:
+          type: object
+          description: "文章元数据"
+          properties:
+            title:
+              type: string
+              description: "文章标题，可选"
+            abstract:
+              type: string
+              description: "文章摘要，可选"
+            cover:
+              $ref: '#/components/schemas/MediaItem'
+        medias:
+          type: array
+          description: "图片、视频列表"
+          items:
+            $ref: '#/components/schemas/MediaItem'
+        content:
+          type: string
+          description: "呼啦圈内容"
+    MediaItem:
+      type: object
+      description: "图片、视频项目"
+      required:
+        - url
+        - width
+        - height
+      properties:
+        url:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+
+    UpdatePost:
+      type: object
+      properties:
+        state:
+          type: string
+          description: '文章状态'
+          enum:
+            - normal
+            - deleted
+            - disable
+            - draft
+        meta:
+          type: object
+        extra:
+          type: object
+      xml:
+        name: Post
+    UploadCallbackReq:
+      type: object
+      properties:
+        filename:
+          type: string
+          description: "文件名，包含路径"
+        size:
+          type: integer
+          description: "文件大小"
+        height:
+          type: integer
+          description: "高"
+        width:
+          type: integer
+          description: "宽"
+    transferReq:
+      type: object
+      properties:
+        file:
+          type: string
+          description: "文件，可以是链接、遵循RFC2397的Base64值"
+        custom:
+          type: object
+          description: "需要返回的自定义内容"
+      required:
+        - file
+
+  ######################################################################################################################
+  x-vertx-service-gen:
+    "qinzi_service.bus": TtpService
+    "misc_service.bus": MiscService

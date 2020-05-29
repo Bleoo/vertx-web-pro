@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+group 'io.vertx.webpro'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(":vertx-web-pro-core")
+    compile project(":vertx-web-pro-swagger")
+
+    compileOnly 'org.projectlombok:lombok:1.18.12'
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+}
