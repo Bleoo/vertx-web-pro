@@ -1,6 +1,7 @@
 package io.vertx.webpro.example;
 
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.webpro.core.annotation.*;
@@ -15,9 +16,11 @@ import java.util.List;
  * @date 2020/5/6 17:14
  */
 
+@Tag(name = "Test", description = "测试相关接口")
 @Router
 public class TestRouter {
 
+    @Operation(summary = "获取helloWorld")
     @GetMapping(value = "/get")
     public Future<String> get() {
         return Future.succeededFuture("helloWorld");

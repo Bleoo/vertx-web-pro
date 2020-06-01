@@ -1,17 +1,12 @@
 package io.vertx.webpro.swagger;
 
-import cn.hutool.core.util.ClassUtil;
+import cn.hutool.core.convert.BasicType;
+import cn.hutool.core.util.EnumUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.core.util.Yaml;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.Paths;
+import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.media.NumberSchema;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.media.*;
 import io.swagger.v3.oas.models.parameters.HeaderParameter;
 import io.swagger.v3.oas.models.parameters.PathParameter;
 import io.swagger.v3.oas.models.parameters.QueryParameter;
@@ -22,15 +17,20 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.webpro.core.annotation.PathVariable;
+import io.vertx.webpro.core.annotation.RequestBody;
 import io.vertx.webpro.core.annotation.RequestHeader;
 import io.vertx.webpro.core.annotation.RequestParam;
-import io.vertx.webpro.core.process.ProcessResult;
 import io.vertx.webpro.core.process.MethodDescriptor;
+import io.vertx.webpro.core.process.ProcessResult;
 import io.vertx.webpro.core.process.RouterDescriptor;
 import lombok.Getter;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class Launcher {
@@ -48,8 +48,10 @@ public class Launcher {
     public void start(ProcessResult result, Router router) {
         Paths paths = new Paths();
         openAPI.setPaths(paths);
+        Components components = new Components();
+        openAPI.setComponents(components);
         for (RouterDescriptor routerDescriptor : result.getRouterDescriptors()) {
-            Tag tag = new Tag().name(routerDescriptor.getClazz().getSimpleName());
+            Tag tag = getTag(routerDescriptor);
             openAPI.addTagsItem(tag);
             for (MethodDescriptor methodDescriptor : routerDescriptor.getMethodDescriptors()) {
                 for (HttpMethod httpMethod : methodDescriptor.getHttpMethods()) {
@@ -69,9 +71,25 @@ public class Launcher {
         });
     }
 
+    private Tag getTag(RouterDescriptor routerDescriptor) {
+        String name;
+        String description = null;
+        Class<?> routerClass = routerDescriptor.getClazz();
+        io.swagger.v3.oas.annotations.tags.Tag annotation =
+                routerClass.getAnnotation(io.swagger.v3.oas.annotations.tags.Tag.class);
+        if (annotation != null) {
+            name = annotation.name();
+            description = annotation.description();
+        } else {
+            name = routerClass.getSimpleName();
+        }
+        return new Tag().name(name).description(description);
+    }
+
     private void handle(MethodDescriptor methodDescriptor, HttpMethod httpMethod, String path, Tag tag, Paths paths) {
         PathItem pathItem = new PathItem();
         Operation operation = new Operation();
+        handleOperation(operation, methodDescriptor);
         operation.addTagsItem(tag.getName());
         switch (httpMethod) {
             case OPTIONS:
@@ -105,31 +123,85 @@ public class Launcher {
         }
         Parameter[] parameters = methodDescriptor.getParameters();
         for (Parameter parameter : parameters) {
-            Class<?> type = parameter.getType();
-            Schema schema;
-            if (type.isPrimitive() || ClassUtil.isPrimitiveWrapper(type) || CharSequence.class.isAssignableFrom(type)) {
-                schema = new StringSchema();
-            } else {
-                schema = new ObjectSchema();
-            }
+            Schema schema = getSchema(parameter.getType());
             RequestHeader requestHeader = parameter.getAnnotation(RequestHeader.class);
             if (requestHeader != null) {
-                pathItem.addParametersItem(new HeaderParameter().name(requestHeader.value()).schema(schema));
+                pathItem.addParametersItem(new HeaderParameter()
+                        .name(requestHeader.value())
+                        .schema(schema)
+                        .required(requestHeader.required()));
             }
             RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
             if (requestParam != null) {
-                pathItem.addParametersItem(new QueryParameter().name(requestParam.value()).schema(schema));
+                pathItem.addParametersItem(new QueryParameter()
+                        .name(requestParam.value())
+                        .schema(schema)
+                        .required(requestParam.required()));
             }
             PathVariable pathVariable = parameter.getAnnotation(PathVariable.class);
             if (pathVariable != null) {
-                pathItem.addParametersItem(new PathParameter().name(pathVariable.value()).schema(schema));
+                pathItem.addParametersItem(new PathParameter()
+                        .name(pathVariable.value())
+                        .schema(schema)
+                        .required(pathVariable.required()));
+            }
+            RequestBody requestBodyAnnotation = parameter.getAnnotation(RequestBody.class);
+            if (requestBodyAnnotation != null) {
+                io.swagger.v3.oas.models.parameters.RequestBody requestBody
+                        = new io.swagger.v3.oas.models.parameters.RequestBody();
+                requestBody.content(new Content().addMediaType("application/json", new MediaType().schema(schema)));
+                operation.requestBody(requestBody);
             }
         }
+        // TODO 返回类型
+//        Class<?> actualClass = methodDescriptor.getActualType().getClass();
+//        Schema schema = getSchema(actualClass);
         ApiResponses apiResponses = new ApiResponses();
         operation.setResponses(apiResponses);
         apiResponses.addApiResponse("200", new ApiResponse().description("fake resp"));
         path = conventPah(path);
         paths.put(path, pathItem);
+    }
+
+    private void handleOperation(Operation operation, MethodDescriptor methodDescriptor) {
+        io.swagger.v3.oas.annotations.Operation operationAnnotation
+                = methodDescriptor.getMethod().getAnnotation(io.swagger.v3.oas.annotations.Operation.class);
+        if(operationAnnotation != null){
+            operation.summary(operationAnnotation.summary());
+        }
+    }
+
+    private Schema getSchema(Class<?> type) {
+        Class<?> wrapType = BasicType.wrap(type);
+        Schema schema;
+        if (Number.class.isAssignableFrom(wrapType)) {
+            schema = new NumberSchema();
+        } else if (CharSequence.class.isAssignableFrom(wrapType)) {
+            schema = new StringSchema();
+        } else if (wrapType.isEnum()) {
+            List<String> names = EnumUtil.getNames((Class<? extends Enum<?>>) wrapType);
+            schema = new StringSchema();
+            schema.setEnum(names);
+        } else if (wrapType.isArray()) {
+            Class<?> componentType = wrapType.getComponentType();
+            schema = new ArraySchema().items(getSchema(componentType));
+        } else if (wrapType == List.class) {
+            Type[] actualTypeArguments = ((ParameterizedType) wrapType.getGenericSuperclass()).getActualTypeArguments();
+            if (actualTypeArguments.length > 0) {
+                Type actualType = actualTypeArguments[0];
+                schema = new ArraySchema().items(getSchema(actualType.getClass()));
+            } else {
+                schema = new ArraySchema();
+            }
+        } else {
+            schema = new ObjectSchema();
+            Field[] fields = wrapType.getDeclaredFields();
+            for (Field field : fields) {
+                schema.addProperties(field.getName(), getSchema(field.getType()));
+            }
+            openAPI.getComponents().addSchemas(wrapType.getSimpleName(), schema);
+        }
+        return schema;
     }
 
     /**

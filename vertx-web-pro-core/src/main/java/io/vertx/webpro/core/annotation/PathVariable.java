@@ -11,4 +11,6 @@ public @interface PathVariable {
 
 	String name() default "";
 
+	boolean required() default true;
+
 }
