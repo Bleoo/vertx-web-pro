@@ -87,6 +87,7 @@ public class HttpServerPro {
                 }
             }
         }
+        // swagger ext
         try {
             Class<?> launcherClass = Class.forName("io.vertx.webpro.swagger.Launcher");
             Method start = launcherClass.getDeclaredMethod("start", ProcessResult.class, Router.class);
