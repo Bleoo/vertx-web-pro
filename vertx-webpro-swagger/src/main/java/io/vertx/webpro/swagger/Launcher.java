@@ -97,8 +97,11 @@ public class Launcher {
     }
 
     private void handle(MethodDescriptor methodDescriptor, HttpMethod httpMethod, String path, Tag tag, Paths paths) {
-        PathItem pathItem = pathRegisterCache.computeIfAbsent(path, k -> new PathItem());
         Operation operation = getOperation(methodDescriptor);
+        if(operation == null){
+            return;
+        }
+        PathItem pathItem = pathRegisterCache.computeIfAbsent(path, k -> new PathItem());
         operation.addTagsItem(tag.getName());
         switch (httpMethod) {
             case OPTIONS:

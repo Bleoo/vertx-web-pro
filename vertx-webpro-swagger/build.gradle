@@ -4,7 +4,7 @@ plugins {
     id 'maven'
 }
 
-group 'io.vertx.webpro.swagger'
+group 'vertx-webpro-swagger'
 version '1.0'
 
 repositories {
@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly project(":vertx-web-pro-core")
+    compileOnly project(":vertx-webpro-core")
 
     compile 'io.swagger.core.v3:swagger-jaxrs2:2.1.2'
     compileOnly 'org.projectlombok:lombok:1.18.12'

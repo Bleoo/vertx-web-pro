@@ -3,7 +3,7 @@ plugins {
     id 'idea'
 }
 
-group 'io.vertx.webpro'
+group 'vertx-webpro-example'
 version '1.0'
 
 repositories {
@@ -11,8 +11,8 @@ repositories {
 }
 
 dependencies {
-    compile project(":vertx-web-pro-core")
-    compile project(":vertx-web-pro-swagger")
+    compile project(":vertx-webpro-core")
+    compile project(":vertx-webpro-swagger")
 
     compileOnly 'org.projectlombok:lombok:1.18.12'
     annotationProcessor 'org.projectlombok:lombok:1.18.12'
