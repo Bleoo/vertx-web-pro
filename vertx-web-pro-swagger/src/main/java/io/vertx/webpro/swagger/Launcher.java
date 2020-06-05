@@ -29,14 +29,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Launcher {
 
     @Getter
     OpenAPI openAPI = new OpenAPI();
+
+    Map<String, PathItem> pathRegisterCache = new HashMap<>();
 
     public Launcher() {
         Info info = new Info();
@@ -52,6 +53,9 @@ public class Launcher {
         openAPI.setComponents(components);
         for (RouterDescriptor routerDescriptor : result.getRouterDescriptors()) {
             Tag tag = getTag(routerDescriptor);
+            if (tag == null) {
+                continue;
+            }
             openAPI.addTagsItem(tag);
             for (MethodDescriptor methodDescriptor : routerDescriptor.getMethodDescriptors()) {
                 for (HttpMethod httpMethod : methodDescriptor.getHttpMethods()) {
@@ -69,17 +73,23 @@ public class Launcher {
                 e.printStackTrace();
             }
         });
+        pathRegisterCache.clear();
     }
 
     private Tag getTag(RouterDescriptor routerDescriptor) {
         String name;
         String description = null;
         Class<?> routerClass = routerDescriptor.getClazz();
-        io.swagger.v3.oas.annotations.tags.Tag annotation =
+        io.swagger.v3.oas.annotations.Hidden hiddenAnnotation =
+                routerClass.getAnnotation(io.swagger.v3.oas.annotations.Hidden.class);
+        if (hiddenAnnotation != null) {
+            return null;
+        }
+        io.swagger.v3.oas.annotations.tags.Tag tagAnnotation =
                 routerClass.getAnnotation(io.swagger.v3.oas.annotations.tags.Tag.class);
-        if (annotation != null) {
-            name = annotation.name();
-            description = annotation.description();
+        if (tagAnnotation != null) {
+            name = tagAnnotation.name();
+            description = tagAnnotation.description();
         } else {
             name = routerClass.getSimpleName();
         }
@@ -87,9 +97,8 @@ public class Launcher {
     }
 
     private void handle(MethodDescriptor methodDescriptor, HttpMethod httpMethod, String path, Tag tag, Paths paths) {
-        PathItem pathItem = new PathItem();
-        Operation operation = new Operation();
-        handleOperation(operation, methodDescriptor);
+        PathItem pathItem = pathRegisterCache.computeIfAbsent(path, k -> new PathItem());
+        Operation operation = getOperation(methodDescriptor);
         operation.addTagsItem(tag.getName());
         switch (httpMethod) {
             case OPTIONS:
@@ -123,6 +132,11 @@ public class Launcher {
         }
         Parameter[] parameters = methodDescriptor.getParameters();
         for (Parameter parameter : parameters) {
+            io.swagger.v3.oas.annotations.Parameter parameterAnnotation
+                    = parameter.getAnnotation(io.swagger.v3.oas.annotations.Parameter.class);
+            if (parameterAnnotation != null && parameterAnnotation.hidden()) {
+                continue;
+            }
             Schema schema = getSchema(parameter.getType());
             RequestHeader requestHeader = parameter.getAnnotation(RequestHeader.class);
             if (requestHeader != null) {
@@ -160,15 +174,17 @@ public class Launcher {
         operation.setResponses(apiResponses);
         apiResponses.addApiResponse("200", new ApiResponse().description("fake resp"));
         path = conventPah(path);
-        paths.put(path, pathItem);
+        paths.addPathItem(path, pathItem);
     }
 
-    private void handleOperation(Operation operation, MethodDescriptor methodDescriptor) {
+    private Operation getOperation(MethodDescriptor methodDescriptor) {
         io.swagger.v3.oas.annotations.Operation operationAnnotation
                 = methodDescriptor.getMethod().getAnnotation(io.swagger.v3.oas.annotations.Operation.class);
-        if(operationAnnotation != null){
-            operation.summary(operationAnnotation.summary());
+        if (operationAnnotation == null || operationAnnotation.hidden()) {
+            return null;
         }
+        Operation operation = new Operation();
+        return operation.summary(operationAnnotation.summary());
     }
 
     private Schema getSchema(Class<?> type) {
